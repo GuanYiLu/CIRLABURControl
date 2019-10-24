@@ -1,0 +1,27 @@
+def poseMoveHandler(pose,action):
+    socket_send_int(200)
+    movej(pose)
+    socket_send_int(200)
+    socket_send_string(action)
+end
+
+def getServerActionAndPose():
+    global receiveAction=socket_read_string()
+    socket_send_string(receiveAction)
+
+    global receivePose=socket_read_ascii_float(6)
+    while (receivePose[0] !=6):
+        global receivePose=socket_read_ascii_float(6)
+    end
+    socket_send_string(receivePose)
+end
+
+def floatToPose(receiveFromServ):
+    global targetPos=p[0,0,0,0,0,0]
+    global counter=0
+    while (counter < 6):
+        targetPos[counter]=receiveFromServ[counter+1]
+        global counter=counter+1
+    end
+    return targetPos
+end

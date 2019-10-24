@@ -1,0 +1,17 @@
+global stausCode = socket_read_byte_list(1)
+while (stausCode[0] != 1):
+    global stausCode = socket_read_byte_list(1)
+end
+global isFreeDrive = (stausCode[1] == 1)
+if (isFreeDrive):
+    freedrive_mode()
+    if socket_send_int(200) :
+        global getPoseCode = socket_read_byte_list(1)
+        while (getPoseCode[0] != 1):
+            global getPoseCode = socket_read_byte_list(1)
+        end
+        if (getPoseCode[1] == 1):
+            socket_send_string(get_actual_tcp_pose())
+        end
+    end
+end
