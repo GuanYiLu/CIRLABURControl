@@ -10,12 +10,12 @@ namespace URControler2
         }
         void Move(float[] Poses);
         void MoveJoint(int Joint, float Angle);
-        void FreeDrive();
+        void FreeDrive(int time);
         void ForceMode(int JointNumber, float JointForce);
         void EndForceMode();
         void GripperOpen();
         void GripperClose();
-        void TurnJoint(int Turns,float force,int joint);
+        void TurnJoint(int Turns, float force, int joint);
 
     }
 }
