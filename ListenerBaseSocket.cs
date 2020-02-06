@@ -4,7 +4,7 @@ using System.Net;
 using System.Text;
 
 
-namespace URControler2
+namespace CIRLABURControl
 {
     public class ListenerBaseSocket
     {

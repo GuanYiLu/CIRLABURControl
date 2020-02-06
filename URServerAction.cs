@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 
-namespace URControler2
+namespace CIRLABURControl
 {
     public class URServerAction : IURServerAction
     {

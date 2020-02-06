@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace URControler2
+namespace CIRLABURControl
 {
     public class URHandler : IURHandler
     {

@@ -1,5 +1,5 @@
 ﻿using System;
-namespace URControler2
+namespace CIRLABURControl
 {
     interface IURHandler
     {
