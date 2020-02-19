@@ -1,0 +1,93 @@
+def poseMoveHandler(pose,action):
+    movej(pose)
+    socket_send_string(action)
+end
+
+def getServerActionAndPose():
+    global receiveAction=socket_read_string()
+    socket_send_string(receiveAction)
+
+    global receivePose=socket_read_ascii_float(6)
+    while (receivePose[0] !=6):
+        global receivePose=socket_read_ascii_float(6)
+    end
+    socket_send_string(receivePose)
+end
+
+def floatToPose(receiveFromServ):
+    global targetPos=p[0,0,0,0,0,0]
+    global counter=0
+    while (counter < 6):
+        targetPos[counter]=receiveFromServ[counter+1]
+        global counter=counter+1
+    end
+    return targetPos
+end
+def floatToJoint(receiveFromServ):
+    global targetPos=[0,0,0,0,0,0]
+    global counter=0
+    while (counter < 6):
+        targetPos[counter]=receiveFromServ[counter+1]
+        global counter=counter+1
+    end
+    return targetPos
+end
+
+def sendPoseWithCMD():
+    freedrive_mode()
+    socket_send_string("freedrive_mode")
+
+    global stausCode = socket_read_byte_list(1)
+    while (stausCode[0] != 1):
+        global stausCode = socket_read_byte_list(1)
+    end
+
+    global isFreeDrive = (stausCode[1] == 2)
+    if (isFreeDrive):
+        global endCode = socket_read_byte_list(1)
+        while (endCode[0] != 1):
+            global endCode = socket_read_byte_list(1)
+        end
+        p = get_actual_tcp_pose()
+        socket_send_string(p)
+        end_freedrive_mode()
+    end
+end
+
+def movePoseWithCMD():
+    socket_send_string("move")
+    receivePose=socket_read_ascii_float(6)
+    while (receivePose[0] !=6):
+        receivePose=socket_read_ascii_float(6)
+    end
+    pose = floatToPose(receivePose)
+    movej(pose)
+end
+
+def moveJointWithCMD():
+    socket_send_string("moveJoint")
+	wantGetLen = 2
+    global MoveJoint=socket_read_ascii_float(wantGetLen)
+    while (MoveJoint[0] !=wantGetLen):
+        global MoveJoint=socket_read_ascii_float(wantGetLen)
+    end
+    pose = get_actual_joint_positions()
+    pose[MoveJoint[1]] = pose[MoveJoint[1]]+MoveJoint[2]
+    servoj(pose,0,0,2)
+end
+
+def ForceMode():
+	socket_send_string("ForceMode")
+	wantGetLen = 2
+	 global ForceModeFloat=socket_read_ascii_float(wantGetLen)
+		while (ForceModeFloat[0] !=wantGetLen):
+			global ForceModeFloat=socket_read_ascii_float(wantGetLen)
+		end
+	global forceJointNumber = ForceModeFloat[1]
+	global JointForce = ForceModeFloat[2]
+	axis = [0, 0, 0, 0, 0, 0]
+	Force = [0, 0, 0, 0, 0, 0]
+	axis[forceJointNumber] = 1
+	Force[forceJointNumber] = JointForce
+	force_mode( tool_pose(), axis, Force, 2, [0.1, 0.1, 0.15, 0.17, 0.17, 0.17])
+end

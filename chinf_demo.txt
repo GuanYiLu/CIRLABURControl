@@ -1,0 +1,27 @@
+ Program
+   BeforeStart
+     Gripper Activate
+     Script: CHINF.script
+     open≔socket_open("192.168.1.109",1100)
+     Loop  not open
+       open≔socket_open("192.168.1.109",1100)
+   Robot Program
+     statusCode≔socket_read_byte_list(1)
+     Loop statusCode[0]≠1
+       statusCode≔socket_read_byte_list(1)
+     If statusCode[1]≟1
+       sendPoseWithCMD()
+     ElseIf statusCode[1]≟2
+       moveJointWithCMD()
+     ElseIf statusCode[1]≟33
+       Gripper Open (1)
+     ElseIf statusCode[1]≟13
+       Gripper Close (1)
+     ElseIf statusCode[1]≟23
+       Gripper Close (1)
+     ElseIf statusCode[1]≟11
+       movePoseWithCMD()
+     ElseIf statusCode[1]≟4
+       ForceMode()
+     ElseIf statusCode[1]≟44
+       end_force_mode()
