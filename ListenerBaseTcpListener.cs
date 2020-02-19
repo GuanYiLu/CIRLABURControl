@@ -10,7 +10,6 @@ namespace CIRLABURControl
 
     public class ListenerBaseTcpListener : IDisposable
     {
-        
         TcpListener _server;
         NetworkStream _stream;
         bool _isServerRun;
@@ -22,7 +21,6 @@ namespace CIRLABURControl
             _server.Start();
 
         }
-
         public void RunServer()
         {
             _isServerRun = true;
@@ -55,9 +53,6 @@ namespace CIRLABURControl
         {
             _isServerRun = false;
         }
-
-        
-
         public TcpListener GetTcpListener()
         {
             return _server;
@@ -66,58 +61,10 @@ namespace CIRLABURControl
         {
             return _stream;
         }
-
         public void Dispose()
         {
             CloseServer();
         }
-
-        //void KeepRead(NetworkStream stream)
-        //{
-        //    byte[] myReadBuffer = new byte[1024];
-
-        //    if (stream.CanRead)
-        //    {
-
-        //        StringBuilder myCompleteMessage = new StringBuilder();
-
-        //        // Incoming message may be larger than the buffer size.
-
-        //        int numberOfBytesRead = stream.Read(myReadBuffer, 0, myReadBuffer.Length);
-
-        //        _ = myCompleteMessage.AppendFormat("{0}", Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead));
-
-
-
-        //        // Print out the received message to the console.
-        //        Console.WriteLine("You received the following message : " + myCompleteMessage);
-        //        byte[] StatusCode;
-        //        if (myCompleteMessage.ToString().Length < 2)
-        //        {
-        //            StatusCode = Encoding.UTF8.GetBytes("(0)");
-        //            stream.Write(StatusCode, 0, StatusCode.Length);
-        //        }
-        //        var pose = URHandler.PoseToFloatList(myCompleteMessage.ToString());
-
-        //        if (pose[1] <= -20)
-        //        {
-        //            StatusCode = Encoding.UTF8.GetBytes("(1)");
-
-        //        }
-        //        else
-        //        {
-        //            StatusCode = Encoding.UTF8.GetBytes("(0)");
-        //        }
-        //        stream.Write(StatusCode, 0, StatusCode.Length);
-
-        //    }
-        //    else
-        //    {
-        //        Console.WriteLine("Sorry.  You cannot read from this NetworkStream.");
-
-        //        return;
-        //    }
-        //}
     }
 
 
