@@ -8,29 +8,26 @@ using System.Text;
 namespace CIRLABURControl
 {
 
-    public class ListenerBaseTcpListener
+    public class ListenerBaseTcpListener : IDisposable
     {
         
         TcpListener _server;
         NetworkStream _stream;
-        
-        public ListenerBaseTcpListener()
-        {
-
-        }
+        bool _isServerRun;
         public ListenerBaseTcpListener(int port, string address)
         {
             
             _server = new TcpListener(IPAddress.Parse(address), port);
 
             _server.Start();
-            
+
         }
 
         public void RunServer()
         {
+            _isServerRun = true;
             // 持續監聽
-            while (true)
+            while (_isServerRun)
             {
                 
 
@@ -54,6 +51,10 @@ namespace CIRLABURControl
                 Console.WriteLine("DisConnected!");
             }
         }
+        public void CloseServer()
+        {
+            _isServerRun = false;
+        }
 
         
 
@@ -64,6 +65,11 @@ namespace CIRLABURControl
         public NetworkStream GetNetworkStream()
         {
             return _stream;
+        }
+
+        public void Dispose()
+        {
+            CloseServer();
         }
 
         //void KeepRead(NetworkStream stream)
