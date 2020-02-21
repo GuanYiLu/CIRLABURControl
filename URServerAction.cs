@@ -18,12 +18,14 @@ namespace CIRLABURControl
         public void FreeDrive()
         {
             Stream.Write(StatusCode.StartFreedrive, 0, 1);
-            StreamRead(100, "startFreedrive");
+            StreamRead(100, "StartFreedrive");
+            StreamRead(100, "DoneStartFreedrive");
         }
         public void EndFreeDrive()
         {
             Stream.Write(StatusCode.EndFreedrive, 0, 1);
-            StreamRead(100, "endFreedrive");
+            StreamRead(100, "EndFreedrive");
+            StreamRead(100, "DoneEndFreedrive");
         }
         public void Move(float[] Poses)
         {
@@ -37,23 +39,23 @@ namespace CIRLABURControl
 
             Stream.Write(StatusCode.MovePoseWithCMD, 0, 1);
 
-            string target = "move";
-            StreamRead(100,target);
+            StreamRead(100,"Move");
             Stream.Write(data, 0, data.Length);
+            StreamRead(100, "DoneMove");
         }
         public void MoveJoint(int Joint, float Angle)
         {
             byte[] moveStr = Encoding.UTF8.GetBytes($"({Joint.ToString()},{Angle.ToString()})");
             Stream.Write(StatusCode.MoveJointWithCMD, 0, 1);
-            string target = "moveJoint";
-            StreamRead(100,target);
+            StreamRead(100, "MoveJoint");
             Stream.Write(moveStr, 0, moveStr.Length);
+            StreamRead(100, "DoneMoveJoint");
         }
         public void TurnJoint(int Turns)
         {
-
-            byte[] clockwise = Encoding.UTF8.GetBytes("(5,3.14)");
-            byte[] counterclockwise = Encoding.UTF8.GetBytes("(5,-3.14)");
+            int joint = 5;
+            float clockwise = 3.1416f;
+            float counterclockwise = -3.1416f;
 
             bool isReadyToOpen = Turns > 0;
             Turns *= 2;
@@ -63,35 +65,31 @@ namespace CIRLABURControl
 
             for (int i = 0; i < Turns; i++)
             {
-                Stream.Write(StatusCode.MoveJointWithCMD, 0, 1);
-                string target = "moveJoint";
-                StreamRead(100,target);
                 if (i % 2 == 0)
                 {
                     if (isReadyToOpen)
-                        Stream.Write(clockwise, 0, clockwise.Length);
+                        MoveJoint(joint, clockwise);
                     else
                         if (i != 0)
-                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
-                    Stream.Write(StatusCode.GripperClose, 0, 1);
+                            MoveJoint(joint, counterclockwise);
+                    GripperClose();
                 }
                 else
                 {
                     if (!isReadyToOpen)
-                        Stream.Write(clockwise, 0, clockwise.Length);
+                        MoveJoint(joint, clockwise);
                     else
-                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
-
-                    EndForceMode();
-                    Stream.Write(StatusCode.GripperOpen, 0, 1);
+                        MoveJoint(joint, counterclockwise);
+                    GripperOpen();
                 }
             }
 
         }
-        public void TurnJoint(int Turns, float force, int joint)
+        public void TurnJoint(int Turns, float force, int forceJoint)
         {
-            byte[] clockwise = Encoding.UTF8.GetBytes("(5,3.1416)");
-            byte[] counterclockwise = Encoding.UTF8.GetBytes("(5,-3.1416)");
+            int joint = 5;
+            float clockwise = 3.1416f;
+            float counterclockwise = -3.1416f;
 
             bool isReadyToOpen = Turns > 0;
             Turns *= 2;
@@ -100,26 +98,23 @@ namespace CIRLABURControl
 
             for (int i = 0; i < Turns; i++)
             {
-                Stream.Write(StatusCode.MoveJointWithCMD, 0, 1);
-                string target = "moveJoint";
-                StreamRead(100,target);
                 if (i % 2 == 0)
                 {
                     if (isReadyToOpen)
-                        Stream.Write(clockwise, 0, clockwise.Length);
+                        MoveJoint(joint, clockwise);
                     else
-                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
-                    Stream.Write(StatusCode.GripperClose, 0, 1);
-                    ForceMode(joint, force);
+                        MoveJoint(joint, counterclockwise);
+                    GripperClose();
+                    ForceMode(forceJoint, force);
                 }
                 else
                 {
                     if (!isReadyToOpen)
-                        Stream.Write(clockwise, 0, clockwise.Length);
+                        MoveJoint(joint, clockwise);
                     else
-                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
+                        MoveJoint(joint, counterclockwise);
                     EndForceMode();
-                    Stream.Write(StatusCode.GripperOpen, 0, 1);
+                    GripperOpen();
                 }
             }
         }
@@ -127,27 +122,33 @@ namespace CIRLABURControl
         {
             Stream.Write(StatusCode.GripperOpen, 0, 1);
             StreamRead(100, "GripperOpen");
+            StreamRead(100, "DoneGripperOpen");
         }
         public void GripperClose()
         {
             Stream.Write(StatusCode.StartFreedrive, 0, 1);
+            StreamRead(100, "GripperClose");
+            StreamRead(100, "DoneGripperClose");
         }
         public void GripperCloseMAX()
         {
             Stream.Write(StatusCode.GripperCloseMAX, 0, 1);
+            StreamRead(100, "GripperCloseMAX");
+            StreamRead(100, "DoneGripperCloseMAX");
         }
         public void ForceMode(int JointNumber, float JointForce)
         {
             byte[] forceStr = Encoding.UTF8.GetBytes($"({JointNumber.ToString()},{JointForce.ToString()})");
             Stream.Write(StatusCode.ForceMode, 0, 1);
-            string target = "ForceMode";
-
-            StreamRead(100, target);
+            StreamRead(100, "ForceMode");
             Stream.Write(forceStr, 0, forceStr.Length);
+            StreamRead(100, "DoneForceMode");
         }
         public void EndForceMode()
         {
             Stream.Write(StatusCode.EndForceMode, 0, 1);
+            StreamRead(100, "EndForceMode");
+            StreamRead(100, "DoneEndForceMode");
         }
         
         string StreamRead(int bufferNumber, string target)

@@ -18,13 +18,21 @@
      ElseIf statusCode[1]≟22
        movePoseWithCMD()
      ElseIf statusCode[1]≟31
+       socket_send_string("GripperOpen")
        Gripper Open (1)
+       socket_send_string("DoneGripperOpen")
      ElseIf statusCode[1]≟32
+       socket_send_string("GripperClose")
        Gripper Close (1)
+       socket_send_string("DoneGripperClose")
      ElseIf statusCode[1]≟33
+       socket_send_string("GripperCloseMAX")
        Gripper Close (1)
+       socket_send_string("DoneGripperCloseMAX")
      
      ElseIf statusCode[1]≟41
        ForceMode()
      ElseIf statusCode[1]≟42
+       socket_send_string("EndForceMode")
        end_force_mode()
+       socket_send_string("DoneEndForceMode")

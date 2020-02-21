@@ -34,25 +34,28 @@ def floatToJoint(receiveFromServ):
 end
 
 def startFreedrive():
+    socket_send_string("StartFreedrive")
     freedrive_mode()
-    socket_send_string("startFreedrive")
+    socket_send_string("DoneStartFreedrive")
 end
 def endFreedrive():
+    socket_send_string("EndFreedrive")
     end_freedrive_mode()
-    socket_send_string("endFreedrive")
+    socket_send_string("DoneEndFreedrive")
 end
 def movePoseWithCMD():
-    socket_send_string("move")
+    socket_send_string("Move")
     receivePose=socket_read_ascii_float(6)
     while (receivePose[0] !=6):
         receivePose=socket_read_ascii_float(6)
     end
     pose = floatToPose(receivePose)
     movej(pose)
+    socket_send_string("DoneMove")
 end
 
 def moveJointWithCMD():
-    socket_send_string("moveJoint")
+    socket_send_string("MoveJoint")
 	wantGetLen = 2
     global MoveJoint=socket_read_ascii_float(wantGetLen)
     while (MoveJoint[0] !=wantGetLen):
@@ -61,6 +64,7 @@ def moveJointWithCMD():
     pose = get_actual_joint_positions()
     pose[MoveJoint[1]] = pose[MoveJoint[1]]+MoveJoint[2]
     servoj(pose,0,0,2)
+    socket_send_string("DoneMoveJoint")
 end
 
 def ForceMode():
@@ -76,5 +80,6 @@ def ForceMode():
 	Force = [0, 0, 0, 0, 0, 0]
 	axis[forceJointNumber] = 1
 	Force[forceJointNumber] = JointForce
-	force_mode( tool_pose(), axis, Force, 2, [0.1, 0.1, 0.15, 0.17, 0.17, 0.17])
+    force_mode( tool_pose(), axis, Force, 2, [0.1, 0.1, 0.15, 0.17, 0.17, 0.17])
+    socket_send_string("DoneForceMode")
 end
