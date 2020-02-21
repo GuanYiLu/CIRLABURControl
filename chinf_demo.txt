@@ -9,19 +9,22 @@
      statusCode≔socket_read_byte_list(1)
      Loop statusCode[0]≠1
        statusCode≔socket_read_byte_list(1)
-     If statusCode[1]≟1
-       sendPoseWithCMD()
-     ElseIf statusCode[1]≟2
+     If statusCode[1]≟11
+       startFreedrive()
+     ElseIf statusCode[1]≟12
+       endFreedrive()
+     ElseIf statusCode[1]≟21
        moveJointWithCMD()
-     ElseIf statusCode[1]≟33
-       Gripper Open (1)
-     ElseIf statusCode[1]≟13
-       Gripper Close (1)
-     ElseIf statusCode[1]≟23
-       Gripper Close (1)
-     ElseIf statusCode[1]≟11
+     ElseIf statusCode[1]≟22
        movePoseWithCMD()
-     ElseIf statusCode[1]≟4
+     ElseIf statusCode[1]≟31
+       Gripper Open (1)
+     ElseIf statusCode[1]≟32
+       Gripper Close (1)
+     ElseIf statusCode[1]≟33
+       Gripper Close (1)
+     
+     ElseIf statusCode[1]≟41
        ForceMode()
-     ElseIf statusCode[1]≟44
+     ElseIf statusCode[1]≟42
        end_force_mode()

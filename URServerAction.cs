@@ -1,59 +1,29 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CIRLABURControl
 {
-    public class URServerAction : IURServerAction
+    public class URServerAction : IURServerActionAsync,IURServerAction
     {
+        public NetworkStream Stream { get; set; }
         public URServerAction(NetworkStream stream)
         {
             if (stream == null)
                 throw new ArgumentNullException("別讓進來的NetworkStream是null阿!");
             Stream = stream;
         }
-        public NetworkStream Stream { get; set; }
 
-        public void EndForceMode()
+        public void FreeDrive()
         {
-            Stream.Write(new byte[] { 44 }, 0, 1);
+            Stream.Write(StatusCode.StartFreedrive, 0, 1);
+            StreamRead(100, "startFreedrive");
         }
-        public void ForceMode(int JointNumber, float JointForce)
+        public void EndFreeDrive()
         {
-            byte[] forceStr = Encoding.UTF8.GetBytes($"({JointNumber.ToString()},{JointForce.ToString()})");
-            Stream.Write(new byte[] { 4 }, 0, 1);
-            string want = "ForceMode";
-
-            if (Read(100) == want)
-                Stream.Write(forceStr, 0, forceStr.Length);
-            else
-                ThrowSomthing(want);
-        }
-
-        public void FreeDrive(int time)
-        {
-            Stream.Write(new byte[] { 1 }, 0, 1);
-            if (Stream.CanRead)
-            {
-                var returnStr = Read(100);
-                if (returnStr == "freedrive_mode")
-                    Stream.Write(new byte[] { 2 }, 0, 1);
-                else
-                    ThrowSomthing("freedrive_mode");
-
-                System.Threading.Thread.Sleep(time);
-                Stream.Write(new byte[] { 1 }, 0, 1);
-                _ = Read(100);
-            }
-
-        }
-        public void GripperClose()
-        {
-            Stream.Write(new byte[] { 3 }, 0, 1);
-        }
-        public void GripperOpen()
-        {
-            Stream.Write(new byte[] { 33 }, 0, 1);
+            Stream.Write(StatusCode.EndFreedrive, 0, 1);
+            StreamRead(100, "endFreedrive");
         }
         public void Move(float[] Poses)
         {
@@ -63,29 +33,21 @@ namespace CIRLABURControl
                 if (Pose == 0)
                     throw new ArgumentException("數值不能有0，UR3很任性的。");
 
-            IURHandler uRHandler = new URHandler();
-            byte[] data = Encoding.UTF8.GetBytes(uRHandler.FloatArrayToURPose(Poses));
+            byte[] data = Encoding.UTF8.GetBytes(URHandler.FloatArrayToURPose(Poses));
 
-            Stream.Write(new byte[] { 11 }, 0, 1);
-            var returnStr = Read(100);
+            Stream.Write(StatusCode.MovePoseWithCMD, 0, 1);
 
-            if (returnStr == "move")
-                Stream.Write(data, 0, data.Length);
-            else
-                ThrowSomthing("move");
-
+            string target = "move";
+            StreamRead(100,target);
+            Stream.Write(data, 0, data.Length);
         }
         public void MoveJoint(int Joint, float Angle)
         {
             byte[] moveStr = Encoding.UTF8.GetBytes($"({Joint.ToString()},{Angle.ToString()})");
-            Stream.Write(new byte[] { 2 }, 0, 1);
-            string data = Read(100);
-            string want = "moveJoint";
-
-            if (data != want)
-                ThrowSomthing(want);
-            else
-                Stream.Write(moveStr, 0, moveStr.Length);
+            Stream.Write(StatusCode.MoveJointWithCMD, 0, 1);
+            string target = "moveJoint";
+            StreamRead(100,target);
+            Stream.Write(moveStr, 0, moveStr.Length);
         }
         public void TurnJoint(int Turns)
         {
@@ -101,39 +63,33 @@ namespace CIRLABURControl
 
             for (int i = 0; i < Turns; i++)
             {
-                Stream.Write(new byte[] { 2 }, 0, 1);
-                string data = Read(100);
-                string want = "moveJoint";
-                if (data != want)
-                    ThrowSomthing(want);
+                Stream.Write(StatusCode.MoveJointWithCMD, 0, 1);
+                string target = "moveJoint";
+                StreamRead(100,target);
+                if (i % 2 == 0)
+                {
+                    if (isReadyToOpen)
+                        Stream.Write(clockwise, 0, clockwise.Length);
+                    else
+                        if (i != 0)
+                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
+                    Stream.Write(StatusCode.GripperClose, 0, 1);
+                }
                 else
                 {
-                    if (i % 2 == 0)
-                    {
-                        if (isReadyToOpen)
-                            Stream.Write(clockwise, 0, clockwise.Length);
-                        else
-                            if (i != 0)
-                            Stream.Write(counterclockwise, 0, counterclockwise.Length);
-                        Stream.Write(new byte[] { 3 }, 0, 1);
-                    }
+                    if (!isReadyToOpen)
+                        Stream.Write(clockwise, 0, clockwise.Length);
                     else
-                    {
-                        if (!isReadyToOpen)
-                            Stream.Write(clockwise, 0, clockwise.Length);
-                        else
-                            Stream.Write(counterclockwise, 0, counterclockwise.Length);
+                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
 
-                        EndForceMode();
-                        Stream.Write(new byte[] { 33 }, 0, 1);
-                    }
+                    EndForceMode();
+                    Stream.Write(StatusCode.GripperOpen, 0, 1);
                 }
             }
 
         }
         public void TurnJoint(int Turns, float force, int joint)
         {
-
             byte[] clockwise = Encoding.UTF8.GetBytes("(5,3.1416)");
             byte[] counterclockwise = Encoding.UTF8.GetBytes("(5,-3.1416)");
 
@@ -144,45 +100,194 @@ namespace CIRLABURControl
 
             for (int i = 0; i < Turns; i++)
             {
-                Stream.Write(new byte[] { 2 }, 0, 1);
-                string data = Read(100);
-                string want = "moveJoint";
-                if (data != want)
-                    ThrowSomthing(want);
-
+                Stream.Write(StatusCode.MoveJointWithCMD, 0, 1);
+                string target = "moveJoint";
+                StreamRead(100,target);
+                if (i % 2 == 0)
+                {
+                    if (isReadyToOpen)
+                        Stream.Write(clockwise, 0, clockwise.Length);
+                    else
+                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
+                    Stream.Write(StatusCode.GripperClose, 0, 1);
+                    ForceMode(joint, force);
+                }
                 else
                 {
-                    if (i % 2 == 0)
-                    {
-                        if (isReadyToOpen)
-                            Stream.Write(clockwise, 0, clockwise.Length);
-                        else
-                            Stream.Write(counterclockwise, 0, counterclockwise.Length);
-
-                        Stream.Write(new byte[] { 3 }, 0, 1);
-                        ForceMode(joint, force);
-                    }
+                    if (!isReadyToOpen)
+                        Stream.Write(clockwise, 0, clockwise.Length);
                     else
-                    {
-                        if (!isReadyToOpen)
-                            Stream.Write(clockwise, 0, clockwise.Length);
-                        else
-                            Stream.Write(counterclockwise, 0, counterclockwise.Length);
-
-                        EndForceMode();
-                        Stream.Write(new byte[] { 33 }, 0, 1);
-                    }
+                        Stream.Write(counterclockwise, 0, counterclockwise.Length);
+                    EndForceMode();
+                    Stream.Write(StatusCode.GripperOpen, 0, 1);
                 }
             }
-
         }
-        string Read(int b)
+        public void GripperOpen()
         {
-            byte[] myReadBuffer = new byte[b];
-            int numberOfBytesRead = Stream.Read(myReadBuffer, 0, myReadBuffer.Length);
-            string returnStr = Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead);
-            return returnStr;
+            Stream.Write(StatusCode.GripperOpen, 0, 1);
+            StreamRead(100, "GripperOpen");
         }
+        public void GripperClose()
+        {
+            Stream.Write(StatusCode.StartFreedrive, 0, 1);
+        }
+        public void GripperCloseMAX()
+        {
+            Stream.Write(StatusCode.GripperCloseMAX, 0, 1);
+        }
+        public void ForceMode(int JointNumber, float JointForce)
+        {
+            byte[] forceStr = Encoding.UTF8.GetBytes($"({JointNumber.ToString()},{JointForce.ToString()})");
+            Stream.Write(StatusCode.ForceMode, 0, 1);
+            string target = "ForceMode";
+
+            StreamRead(100, target);
+            Stream.Write(forceStr, 0, forceStr.Length);
+        }
+        public void EndForceMode()
+        {
+            Stream.Write(StatusCode.EndForceMode, 0, 1);
+        }
+        
+        string StreamRead(int bufferNumber, string target)
+        {
+            if (Stream.CanRead){
+                byte[] myReadBuffer = new byte[bufferNumber];
+                int numberOfBytesRead = Stream.Read(myReadBuffer, 0, myReadBuffer.Length);
+                string actual = Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead);
+                if (target != actual)
+                    ThrowSomthing(target);
+                return actual;
+            }else{
+                return "";
+            }
+        }
+        
+
+        // Async...
+        
+        
+        public async Task FreeDriveAsync()
+        {
+            await Stream.WriteAsync(StatusCode.StartFreedrive, 0, 1).ConfigureAwait(false);
+            await StreamReadAsync(100, "startFreedrive").ConfigureAwait(false);
+        }
+        public async Task EndFreeDriveAsync()
+        {
+            await Stream.WriteAsync(StatusCode.EndFreedrive, 0, 1).ConfigureAwait(false);
+            await StreamReadAsync(100, "endFreedrive").ConfigureAwait(false);
+        }
+        public async Task FreeDriveAsync(int time)
+        {
+            await FreeDriveAsync().ConfigureAwait(false);
+            System.Threading.Thread.Sleep(time);
+            await EndFreeDriveAsync().ConfigureAwait(false);
+        }
+        public async Task MoveAsync(float[] Poses)
+        {
+            if (Poses.Length != 6)
+                throw new ArgumentException("給的pose應該要是6個才對。");
+            foreach (float Pose in Poses)
+                if (Pose == 0)
+                    throw new ArgumentException("數值不能有0，UR3很任性的。");
+
+            byte[] data = Encoding.UTF8.GetBytes(URHandler.FloatArrayToURPose(Poses));
+
+            await Stream.WriteAsync(StatusCode.MovePoseWithCMD, 0, 1).ConfigureAwait(false);
+
+            string target = "move";
+            await StreamReadAsync(100, target).ConfigureAwait(false);
+            await Stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
+        }
+        public async Task MoveJointAsync(int Joint, float Angle)
+        {
+            byte[] moveStr = Encoding.UTF8.GetBytes($"({Joint.ToString()},{Angle.ToString()})");
+            await Stream.WriteAsync(StatusCode.MoveJointWithCMD, 0, 1).ConfigureAwait(false);
+            string target = "moveJoint";
+            await StreamReadAsync(100, target).ConfigureAwait(false);
+            await Stream.WriteAsync(moveStr, 0, moveStr.Length).ConfigureAwait(false);
+        }
+        public async Task TurnJointAsync(int Turns, float force, int joint)
+        {
+            byte[] clockwise = Encoding.UTF8.GetBytes("(5,3.1416)");
+            byte[] counterclockwise = Encoding.UTF8.GetBytes("(5,-3.1416)");
+
+            bool isReadyToOpen = Turns > 0;
+            Turns *= 2;
+            if (!isReadyToOpen)
+                Turns = -Turns;
+
+            for (int i = 0; i < Turns; i++)
+            {
+                await Stream.WriteAsync(StatusCode.MoveJointWithCMD, 0, 1).ConfigureAwait(false);
+                string target = "moveJoint";
+                await StreamReadAsync(100, target).ConfigureAwait(false);
+                if (i % 2 == 0)
+                {
+                    if (isReadyToOpen)
+                        await Stream.WriteAsync(clockwise, 0, clockwise.Length).ConfigureAwait(false);
+                    else
+                        await Stream.WriteAsync(counterclockwise, 0, counterclockwise.Length).ConfigureAwait(false);
+                    await GripperCloseAsync().ConfigureAwait(false);
+                    await ForceModeAsync(joint, force).ConfigureAwait(false);
+                }
+                else
+                {
+                    if (!isReadyToOpen)
+                        await Stream.WriteAsync(clockwise, 0, clockwise.Length).ConfigureAwait(false);
+                    else
+                        await Stream.WriteAsync(counterclockwise, 0, counterclockwise.Length).ConfigureAwait(false);
+                    await EndForceModeAsync().ConfigureAwait(false);
+                    await GripperOpenAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        public async Task GripperOpenAsync()
+        {
+            await Stream.WriteAsync(StatusCode.GripperOpen, 0, 1).ConfigureAwait(false);
+            await StreamReadAsync(100, "GripperOpen").ConfigureAwait(false);
+        }
+        public async Task GripperCloseAsync()
+        {
+            await Stream.WriteAsync(StatusCode.GripperClose, 0, 1).ConfigureAwait(false);
+        }
+        public async Task GripperCloseMAXAsync()
+        {
+            await Stream.WriteAsync(StatusCode.GripperCloseMAX, 0, 1).ConfigureAwait(false);
+        }
+        public async Task ForceModeAsync(int JointNumber, float JointForce)
+        {
+            byte[] forceStr = Encoding.UTF8.GetBytes($"({JointNumber.ToString()},{JointForce.ToString()})");
+            await Stream.WriteAsync(StatusCode.ForceMode, 0, 1).ConfigureAwait(false);
+            string target = "ForceMode";
+
+            await StreamReadAsync(100, target).ConfigureAwait(false);
+            await Stream.WriteAsync(forceStr, 0, forceStr.Length).ConfigureAwait(false);
+        }
+        public async Task EndForceModeAsync()
+        {
+            await Stream.WriteAsync(StatusCode.EndForceMode, 0, 1).ConfigureAwait(false);
+        }
+        async Task<string> StreamReadAsync(int bufferNumber, string target)
+        {
+            if (Stream.CanRead)
+            {
+                byte[] myReadBuffer = new byte[bufferNumber];
+                int numberOfBytesRead = await Stream.ReadAsync(myReadBuffer, 0, myReadBuffer.Length).ConfigureAwait(false);
+                string actual = Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead);
+                if (target != actual)
+                    ThrowSomthing(target);
+                return actual;
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+
+
         void ThrowSomthing(string e)
         {
             throw new System.InvalidProgramException($"完了．．UR3沒有正常回覆{e}字串喔");

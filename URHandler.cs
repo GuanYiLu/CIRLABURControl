@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace CIRLABURControl
 {
-    public class URHandler : IURHandler
+    public class URHandler
     {
 
 
-        public float[] URposeToFloatArray(string pose)
+        public static float[] URposeToFloatArray(string pose)
 
         {
             var poseArray = pose.Split(',');
@@ -38,7 +38,7 @@ namespace CIRLABURControl
             return poseList.ToArray();
         }
 
-        public string FloatArrayToURPose(float[] poseArray)
+        public static string FloatArrayToURPose(float[] poseArray)
         {
             string pose = "(";
             foreach (float p in poseArray)

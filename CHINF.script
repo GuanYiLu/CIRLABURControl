@@ -33,27 +33,14 @@ def floatToJoint(receiveFromServ):
     return targetPos
 end
 
-def sendPoseWithCMD():
+def startFreedrive():
     freedrive_mode()
-    socket_send_string("freedrive_mode")
-
-    global stausCode = socket_read_byte_list(1)
-    while (stausCode[0] != 1):
-        global stausCode = socket_read_byte_list(1)
-    end
-
-    global isFreeDrive = (stausCode[1] == 2)
-    if (isFreeDrive):
-        global endCode = socket_read_byte_list(1)
-        while (endCode[0] != 1):
-            global endCode = socket_read_byte_list(1)
-        end
-        p = get_actual_tcp_pose()
-        socket_send_string(p)
-        end_freedrive_mode()
-    end
+    socket_send_string("startFreedrive")
 end
-
+def endFreedrive():
+    end_freedrive_mode()
+    socket_send_string("endFreedrive")
+end
 def movePoseWithCMD():
     socket_send_string("move")
     receivePose=socket_read_ascii_float(6)
