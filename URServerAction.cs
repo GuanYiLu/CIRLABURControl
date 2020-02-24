@@ -83,7 +83,6 @@ namespace CIRLABURControl
                     GripperOpen();
                 }
             }
-
         }
         public void TurnJoint(int Turns, float force, int forceJoint)
         {
@@ -173,11 +172,13 @@ namespace CIRLABURControl
         {
             await Stream.WriteAsync(StatusCode.StartFreedrive, 0, 1).ConfigureAwait(false);
             await StreamReadAsync(100, "startFreedrive").ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneStartFreedrive").ConfigureAwait(false);
         }
         public async Task EndFreeDriveAsync()
         {
             await Stream.WriteAsync(StatusCode.EndFreedrive, 0, 1).ConfigureAwait(false);
             await StreamReadAsync(100, "endFreedrive").ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneEndFreedrive").ConfigureAwait(false);
         }
         public async Task FreeDriveAsync(int time)
         {
@@ -197,22 +198,56 @@ namespace CIRLABURControl
 
             await Stream.WriteAsync(StatusCode.MovePoseWithCMD, 0, 1).ConfigureAwait(false);
 
-            string target = "move";
-            await StreamReadAsync(100, target).ConfigureAwait(false);
+            await StreamReadAsync(100, "Move").ConfigureAwait(false);
             await Stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneMove").ConfigureAwait(false);
         }
         public async Task MoveJointAsync(int Joint, float Angle)
         {
             byte[] moveStr = Encoding.UTF8.GetBytes($"({Joint.ToString()},{Angle.ToString()})");
             await Stream.WriteAsync(StatusCode.MoveJointWithCMD, 0, 1).ConfigureAwait(false);
-            string target = "moveJoint";
-            await StreamReadAsync(100, target).ConfigureAwait(false);
+            await StreamReadAsync(100, "MoveJoint").ConfigureAwait(false);
             await Stream.WriteAsync(moveStr, 0, moveStr.Length).ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneMoveJoint").ConfigureAwait(false);
         }
-        public async Task TurnJointAsync(int Turns, float force, int joint)
+        public async Task TurnJointAsync(int Turns)
         {
-            byte[] clockwise = Encoding.UTF8.GetBytes("(5,3.1416)");
-            byte[] counterclockwise = Encoding.UTF8.GetBytes("(5,-3.1416)");
+            int joint = 5;
+            float clockwise = 3.1416f;
+            float counterclockwise = -3.1416f;
+
+            bool isReadyToOpen = Turns > 0;
+            Turns *= 2;
+
+            if (!isReadyToOpen)
+                Turns = -Turns;
+
+            for (int i = 0; i < Turns; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    if (isReadyToOpen)
+                        await MoveJointAsync(joint, clockwise);
+                    else
+                        if (i != 0)
+                        await MoveJointAsync(joint, counterclockwise);
+                    await GripperCloseAsync();
+                }
+                else
+                {
+                    if (!isReadyToOpen)
+                        await MoveJointAsync(joint, clockwise);
+                    else
+                        await MoveJointAsync(joint, counterclockwise);
+                    await GripperOpenAsync();
+                }
+            }
+        }
+        public async Task TurnJointAsync(int Turns, float force, int forceJoint)
+        {
+            int joint = 5;
+            float clockwise = 3.1416f;
+            float counterclockwise = -3.1416f;
 
             bool isReadyToOpen = Turns > 0;
             Turns *= 2;
@@ -221,24 +256,21 @@ namespace CIRLABURControl
 
             for (int i = 0; i < Turns; i++)
             {
-                await Stream.WriteAsync(StatusCode.MoveJointWithCMD, 0, 1).ConfigureAwait(false);
-                string target = "moveJoint";
-                await StreamReadAsync(100, target).ConfigureAwait(false);
                 if (i % 2 == 0)
                 {
                     if (isReadyToOpen)
-                        await Stream.WriteAsync(clockwise, 0, clockwise.Length).ConfigureAwait(false);
+                        await MoveJointAsync(joint, clockwise);
                     else
-                        await Stream.WriteAsync(counterclockwise, 0, counterclockwise.Length).ConfigureAwait(false);
-                    await GripperCloseAsync().ConfigureAwait(false);
-                    await ForceModeAsync(joint, force).ConfigureAwait(false);
+                        await MoveJointAsync(joint, counterclockwise);
+                    await GripperCloseAsync();
+                    await ForceModeAsync(forceJoint, force).ConfigureAwait(false);
                 }
                 else
                 {
                     if (!isReadyToOpen)
-                        await Stream.WriteAsync(clockwise, 0, clockwise.Length).ConfigureAwait(false);
+                        await MoveJointAsync(joint, clockwise);
                     else
-                        await Stream.WriteAsync(counterclockwise, 0, counterclockwise.Length).ConfigureAwait(false);
+                        await MoveJointAsync(joint, counterclockwise);
                     await EndForceModeAsync().ConfigureAwait(false);
                     await GripperOpenAsync().ConfigureAwait(false);
                 }
@@ -248,27 +280,34 @@ namespace CIRLABURControl
         {
             await Stream.WriteAsync(StatusCode.GripperOpen, 0, 1).ConfigureAwait(false);
             await StreamReadAsync(100, "GripperOpen").ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneGripperOpen").ConfigureAwait(false);
         }
         public async Task GripperCloseAsync()
         {
             await Stream.WriteAsync(StatusCode.GripperClose, 0, 1).ConfigureAwait(false);
+            await StreamReadAsync(100, "GripperClose").ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneGripperClose").ConfigureAwait(false);
         }
         public async Task GripperCloseMAXAsync()
         {
             await Stream.WriteAsync(StatusCode.GripperCloseMAX, 0, 1).ConfigureAwait(false);
+            await StreamReadAsync(100, "GripperCloseMAX").ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneGripperCloseMAX").ConfigureAwait(false);
         }
         public async Task ForceModeAsync(int JointNumber, float JointForce)
         {
             byte[] forceStr = Encoding.UTF8.GetBytes($"({JointNumber.ToString()},{JointForce.ToString()})");
             await Stream.WriteAsync(StatusCode.ForceMode, 0, 1).ConfigureAwait(false);
-            string target = "ForceMode";
 
-            await StreamReadAsync(100, target).ConfigureAwait(false);
+            await StreamReadAsync(100, "ForceMode").ConfigureAwait(false);
             await Stream.WriteAsync(forceStr, 0, forceStr.Length).ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneForceMode").ConfigureAwait(false);
         }
         public async Task EndForceModeAsync()
         {
             await Stream.WriteAsync(StatusCode.EndForceMode, 0, 1).ConfigureAwait(false);
+            await StreamReadAsync(100, "EndForceMode").ConfigureAwait(false);
+            await StreamReadAsync(100, "DoneEndForceMode").ConfigureAwait(false);
         }
         async Task<string> StreamReadAsync(int bufferNumber, string target)
         {

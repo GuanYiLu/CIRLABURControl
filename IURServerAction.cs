@@ -36,6 +36,7 @@ namespace CIRLABURControl
         Task EndForceModeAsync();
         Task GripperOpenAsync();
         Task GripperCloseAsync();
+        Task TurnJointAsync(int Turns);
         Task TurnJointAsync(int Turns, float force, int joint);
 
     }
