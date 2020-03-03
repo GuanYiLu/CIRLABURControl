@@ -25,29 +25,41 @@ namespace CIRLABURControl
         public void RunServer()
         {
             _isServerRun = true;
-            // 持續監聽
-            while (_isServerRun)
+
+            try
             {
-                
-
-                // Perform a blocking call to accept requests.
-                // You could also user server.AcceptSocket() here.
-                _client = _server.AcceptTcpClient();
-                
-
-
-                // Get a stream object for reading and writing
-                _stream = _client.GetStream();
-                //_stream.Write(new byte[] { 3 });
-                // 只要還連著就不會離開
-                while (_client.Connected)
+                // 持續監聽
+                while (_isServerRun)
                 {
-                    // 空轉起來！！
-                    
-                }
 
-                _client.Dispose();
-                Console.WriteLine("DisConnected!");
+
+                    // Perform a blocking call to accept requests.
+                    // You could also user server.AcceptSocket() here.
+                    _client = _server.AcceptTcpClient();
+
+
+
+                    // Get a stream object for reading and writing
+                    _stream = _client.GetStream();
+                    //_stream.Write(new byte[] { 3 });
+                    // 只要還連著就不會離開
+                    while (_client.Connected)
+                    {
+                        // 空轉起來！！
+
+                    }
+
+                    _client.Dispose();
+                    Console.WriteLine("DisConnected!");
+                }
+            }
+            catch (SocketException e)
+            {
+                Console.WriteLine("SocketException: {0}", e);
+            }
+            finally
+            {
+                _server.Stop();
             }
         }
         public void CloseServer()
@@ -64,7 +76,7 @@ namespace CIRLABURControl
         }
         public void Dispose()
         {
-            
+            _server.Stop();
             if (_client.Connected)
                 _stream.Dispose();
             CloseServer();
