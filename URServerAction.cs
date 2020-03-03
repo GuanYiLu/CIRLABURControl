@@ -113,6 +113,7 @@ namespace CIRLABURControl
                     else
                         MoveJoint(joint, counterclockwise);
                     EndForceMode();
+                    System.Threading.Thread.Sleep(500);
                     GripperOpen();
                 }
             }
@@ -125,7 +126,7 @@ namespace CIRLABURControl
         }
         public void GripperClose()
         {
-            Stream.Write(StatusCode.StartFreedrive, 0, 1);
+            Stream.Write(StatusCode.GripperClose, 0, 1);
             StreamRead(100, "GripperClose");
             StreamRead(100, "DoneGripperClose");
         }
@@ -157,7 +158,7 @@ namespace CIRLABURControl
                 int numberOfBytesRead = Stream.Read(myReadBuffer, 0, myReadBuffer.Length);
                 string actual = Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead);
                 if (target != actual)
-                    ThrowSomthing(target);
+                    ThrowSomthing(target, actual);
                 return actual;
             }else{
                 return "";
@@ -317,7 +318,7 @@ namespace CIRLABURControl
                 int numberOfBytesRead = await Stream.ReadAsync(myReadBuffer, 0, myReadBuffer.Length).ConfigureAwait(false);
                 string actual = Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead);
                 if (target != actual)
-                    ThrowSomthing(target);
+                    ThrowSomthing(target, actual);
                 return actual;
             }
             else
@@ -328,9 +329,9 @@ namespace CIRLABURControl
 
 
 
-        void ThrowSomthing(string e)
+        void ThrowSomthing(string e,string actual)
         {
-            throw new System.InvalidProgramException($"完了．．UR3沒有正常回覆{e}字串喔");
+            throw new System.InvalidProgramException($"完了．．UR3回覆{actual}，沒有正常回覆{e}字串喔");
         }
     }
 }
